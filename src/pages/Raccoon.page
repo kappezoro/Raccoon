@@ -1,0 +1,95 @@
+<apex:page controller="RaccoonController">
+    <apex:stylesheet value="{!URLFOR($Resource.SemanticUI, 'Semantic-UI-CSS-master/semantic.min.css')}" />
+    <html>
+        <head>
+            <style>
+                div.sentiment {
+                    float: left;
+                }
+            </style>
+            <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+            <script>
+                $(document).ready( function(){
+                　　　　parseSentiment();
+　　　　　　　　　　　　　　});
+            
+                function updateTxtArea(){
+                    console.log('test');
+                    Visualforce.remoting.Manager.invokeAction(
+                   '{!$RemoteAction.RaccoonController.updateInterview}',
+                    'a047F000006gLam',
+                    $('#interview').val(),
+                    function (result, event) {
+                            alert(result);
+                    },{escape:true}
+                    );
+               }
+            
+            function parseSentiment(){
+                try{
+                    var data = JSON.parse('{!jobApplicant.Sentiment__c}');
+
+                    var probabilities  = data["probabilities"];
+                    console.log(probabilities);
+                    var probability = probabilities[0]["probability"];
+                    var label = probabilities[0]["label"];                    
+                    var icon = "meh";
+                    if(probability > 0.5){
+                        switch(label){
+                            case "positive":
+                                icon = 'smile'
+                                break;
+                            case "negative":
+                                icon = 'frown';
+                                break;
+                        }
+                    }
+                    $('#testsentiment').addClass(icon)
+               }catch(e){
+                   console.log(e);
+               }
+                return false;
+            }
+  
+            </script>    
+        </head>
+        <body >
+            <!-- JobApplicantリスト表示 -->
+            <apex:pageBlock >
+            <apex:pageBlockTable value="{!jobApplicant}" var="applicant">
+                <apex:column value="{!applicant.Id}"/>
+                <apex:column value="{!applicant.Name}"/>
+                <apex:column value="{!applicant.Prefecture__c}"/>
+                <apex:column value="{!applicant.IntentSalary__c}"/>
+                <apex:column value="{!applicant.IntentWorkTime__c}"/>
+                <apex:column value="{!applicant.IntentPlace__c}"/>
+                <apex:column value="{!applicant.IntentRelationship__c}"/>
+                <apex:column value="{!applicant.IntentCareer__c}"/>                
+            </apex:pageBlockTable>
+            </apex:pageBlock>            
+            <!-- JobApplicant history表示 -->
+
+            
+             <div class="ui teal ribbon label">
+                    <i class="sentiment icon" id="testsentiment"></i> Interview
+            </div>
+            <!-- form フリーテキスト/保存ボタン -->
+            <form class="ui form" onSubmit="updateTxtArea()">
+                <div class="field">
+                      <textarea id="interview" name="interview">{!interview}</textarea>
+               </div>
+                <div>
+                    <input class="ui button primary" type="submit" value="Save"/>
+                </div>
+            </form>
+            <div>
+            <button class="ui button"  onClick=" location.reload(false)">
+                reload
+            </button>
+            <button class="ui basic pink button"  onClick=" parseSentiment()">
+                test
+            </button>
+            </div>
+        </body>
+    </html>
+</apex:page>
