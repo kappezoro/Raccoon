@@ -7,13 +7,8 @@ public class RaccoonController {
     private static String INTENT_URL    = 'https://api.einstein.ai/v2/language/intent';
     private static String TRAIN_URL     = '';
 
-    
-    public static String getInterview(){
-        return [SELECT Interview__c FROM JobApplicant__c LIMIT 1].interview__c;
-    }
-    
     @RemoteAction
-    public static Boolean updateInterview(String applicantId, String interviewTextArea){
+    public static JobApplicant__c updateInterview(String applicantId, String interviewTextArea){
         try{
             JobApplicant__c jobApplicant = new JobApplicant__c();
             jobApplicant.Id = applicantId;
@@ -24,9 +19,10 @@ public class RaccoonController {
             putIntent(intentJson, jobApplicant);
             System.debug('update');
             update jobApplicant;
-            return true;
+            return jobApplicant;
         }catch(Exception e){
-            return false;
+            System.debug(e);
+            return null;
         }
     }
 
@@ -61,22 +57,6 @@ public class RaccoonController {
         }
         System.debug(jobApplicant);
         return jobApplicant;
-    }
-    
-    public JobApplicant__c getJobApplicant(){
-        String intents    = ' IntentSalary__c, IntentPlace__c, IntentWorktime__c, IntentRelationship__c, IntentCareer__c';
-        String sentiments = ' ,Sentiment__c';
-        String query      = 'SELECT Id, Name, Prefecture__c ,'+ intents + sentiments + ' FROM JobApplicant__c';
-        return Database.query(query);
-    }
-    
- 
-    
-    /**
-     *  text-intent call to get result data from ESP
-     */
-    public void getIntent(){
-        
     }
     
     /**

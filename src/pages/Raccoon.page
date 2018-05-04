@@ -1,12 +1,15 @@
 <apex:page controller="RaccoonController">
     <apex:stylesheet value="{!URLFOR($Resource.SemanticUI, 'Semantic-UI-CSS-master/semantic.min.css')}" />
+    <apex:includeScript value="{!URLFOR($Resource.JQuery)}" />
+    <apex:includeScript value="{!URLFOR($Resource.SemanticUI, 'Semantic-UI-CSS-master/semantic.min.js')}" />
     <html>
         <head>
+            <script src="/soap/ajax/15.0/connection.js" type="text/javascript"/>
+            <script src="/soap/ajax/15.0/apex.js" type="text/javascript"/>
             <style  type="text/css">
                 div.sentiment {
                     float : left;
                 }
-
                 body {
                    background-color: #292D34;
                    padding : 16px;
@@ -18,58 +21,21 @@
                     color : #FFFFFF;
                 }
             </style>
-            <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
             <script>
-                $(document).ready( function(){
-                　　　　parseSentiment();
-　　　　　　　　　　　　　　});
-            
-                function updateTxtArea(){
-                    console.log('test');
-                    Visualforce.remoting.Manager.invokeAction(
-                   '{!$RemoteAction.RaccoonController.updateInterview}',
-                    'a047F000006gLam',
-                    $('#interview').val(),
-                    function (result, event) {
-                        if(result){
-                            alert(result);
-                            location.reload(true);
-                        }
-                    },{escape:true}
-                    );
-               }
-            
-            function parseSentiment(){
-                try{
-                    var data = JSON.parse('{!jobApplicant.Sentiment__c}');
-
-                    var probabilities  = data["probabilities"];
-                    console.log(probabilities);
-                    var probability = probabilities[0]["probability"];
-                    var label = probabilities[0]["label"];                    
-                    var icon = "meh";
-                    if(probability > 0.5){
-                        switch(label){
-                            case "positive":
-                                icon = 'smile'
-                                break;
-                            case "negative":
-                                icon = 'frown';
-                                break;
-                        }
-                    }
-                    $('#testsentiment').addClass(icon)
-               }catch(e){
-                   console.log(e);
-               }
-                return false;
-            }
   
             </script>    
         </head>
-        <body >
+        <body>
+            <div class="ui search">
+                <div class="ui  icon input">
+                    <input class="prompt" type="text" placeholder="Search..." />
+                    <i class="search icon"></i>
+                </div> 
+                <div class="results" ></div>
+             </div>
+            <input type="hidden" id='applicant-sentiment'/>
             <!-- JobApplicantリスト表示 -->
-            <table class="ui inverted orange table">
+            <table class="ui inverted yellow table">
                 <thead>
                 <tr>
                     <th>{!$ObjectType.JobApplicant__c.Fields.Name.Label}</th>
@@ -83,13 +49,13 @@
                 </thead>
                 <tbody>
                     <tr>
-                       <td>{!jobApplicant.Name}</td>
-                       <td>{!jobApplicant.Prefecture__c}</td>
-                       <td>{!ROUND(jobApplicant.IntentSalary__c * 100, 2)}%</td>
-                       <td>{!ROUND(jobApplicant.IntentWorkTime__c * 100, 2)}%</td>
-                       <td>{!ROUND(jobApplicant.IntentPlace__c * 100, 2)}%</td>
-                       <td>{!ROUND(jobApplicant.IntentRelationship__c * 100, 2)}%</td>
-                       <td>{!ROUND(jobApplicant.IntentCareer__c * 100, 2)}%</td>                                              
+                       <td id='applicant-name'></td>
+                       <td id='applicant-prefecture'></td>
+                       <td id='applicant-intent-salary'></td>
+                       <td id='applicant-intent-worktime'></td>
+                       <td id='applicant-intent-place'></td>
+                       <td id='applicant-intent-relationship'></td>
+                       <td id='applicant-intent-career'></td>                                              
                     </tr>
                 </tbody>
             </table>            
@@ -98,19 +64,132 @@
             
             <!-- interview ラベルと sentiment 表示-->
              <div class="ui teal ribbon label" style="font-size : 18px">
-                    <i class="sentiment icon" id="testsentiment"></i> Interview
+                    <i class="sentiment icon" id="sentiment-icon"></i> Interview
             </div>
             <!-- form フリーテキスト/保存ボタン -->
-            <form class="ui form" onSubmit="updateTxtArea()">
+            <form class="ui form">
                 <div class="field">
-                      <textarea id="interview" name="interview" rows="25" style="background-color:gray;color:white">{!interview}</textarea>
+                      <textarea id="applicant-interview" rows="25" style="background-color:gray;color:white"></textarea>
                </div>
                 <div>
-                    <input class="ui button primary" type="submit" value="Save"/>
+                    <div id="applicant-loading" class="ui icon message black"  style="color:white;display:none;">
+                         <i class="sync  loading icon black"></i>
+                          Saving.....
+                    </div>
+                   <div id="applicant-saved" class="ui icon message black"  style="color:white;display:none;">
+                         <i class="check circle  icon green"></i>
+                          Saved!
+                    </div>
+                    <button id="applicant-save" class="ui button icon primary" type="button" onClick="updateTxtArea()">Save Interview</button>
                 </div>
             </form>
-            <div>
-            </div>
         </body>
+        <foot>
+            <script>
+                   var targetJobApplicantId = '';
+            　　　　　　　var categoryContent  = [ ];
+                   var targetJobApplicant;
+            
+                   function getData(result){
+                         console.log(result);
+                         $('#applicant-save').removeAttr('data-tooltip');
+                         targetJobApplicantId = result;
+                         var resultjobApplycant = sforce.connection.query("SELECT Id, Name,"+
+                                  "Prefecture__c , Interview__c, IntentSalary__c, IntentPlace__c,"+
+                                  " IntentWorktime__c, IntentRelationship__c, IntentCareer__c, Sentiment__c " +
+                                  " FROM JobApplicant__c WHERE Id = \'"+targetJobApplicantId +"\'");
+                         console.log(resultjobApplycant.records);
+                         targetJobApplicant = resultjobApplycant.records
+                         $('#applicant-name').text(targetJobApplicant.Name);
+                         $('#applicant-prefecture').text(targetJobApplicant.Prefecture__c);
+                         $('#applicant-intent-salary').text(Math.round(targetJobApplicant.IntentSalary__c  * 10000)/100+'%');
+                         $('#applicant-intent-worktime').text(Math.round(targetJobApplicant.IntentWorktime__c   * 10000)/100+'%');
+                         $('#applicant-intent-place').text(Math.round(targetJobApplicant.IntentPlace__c   * 10000)/100+'%');
+                         $('#applicant-intent-relationship').text(Math.round(targetJobApplicant.IntentRelationship__c  * 10000)/100+'%');
+                         $('#applicant-intent-career').text(Math.round(targetJobApplicant.IntentCareer__c   * 10000)/100 +'%');
+                         $('#applicant-interview').text(targetJobApplicant.Interview__c);
+                         $('#applicant-sentiment').text(targetJobApplicant.Sentiment__c);
+                         console.log(targetJobApplicant.Sentiment__c);
+                         parseSentiment(targetJobApplicant.Sentiment__c);
+                   }
+    
+                    $(document).ready( function(){
+                       sforce.connection.sessionId='{!GETSESSIONID()}';
+                       var result = sforce.connection.query("SELECT Id, Name FROM JobApplicant__c WHERE OwnerId='{!$User.Id}'");
+                       var applicants = result.records;
+                       
+                        for(var i  in applicants){
+                            if(applicants[i].Name == undefined){
+                                continue;
+                             }
+                            categoryContent.push({title: applicants[i].Name, category: applicants[i].Id});
+                        }
+                        console.log(categoryContent );
+                        if(targetJobApplicantId != ''){
+                            getData(targetJobApplicantId);
+                         }
+                        
+                       $('.ui.search').search({type: 'category',
+                           source: categoryContent,
+                           onSelect: function (result,response) {
+                               getData(result.category);
+                         }});     
+　　　　　　　　　　　　　　});
+            
+              function updateTxtArea(){
+                    console.log('test');
+                    if(targetJobApplicantId == ''){
+                        $('#applicant-save').attr('data-tooltip','Please select Job Applicant.');
+                        return false;
+                    }
+                    $('#applicant-loading').show();
+                    Visualforce.remoting.Manager.invokeAction(
+                   '{!$RemoteAction.RaccoonController.updateInterview}',
+                    targetJobApplicantId,
+                    $('#applicant-interview').val(),
+                    function (result, event) {
+                        if(result){
+                            $('#applicant-loading').hide();
+                            $('#applicant-saved').show();
+                            getData(result.Id);
+                            window.setTimeout(function(){$('#applicant-saved').hide();}, 3000);
+                        }
+                    },{escape:true}
+                    );
+                    return false;
+               }
+            
+            function parseSentiment(sentiment){
+                try{
+                    $('#sentiment-icon').removeClass('smile');
+                    $('#sentiment-icon').removeClass('frown');
+                    $('#sentiment-icon').removeClass('meh');
+                    var data = JSON.parse(sentiment);
+                    var probabilities  = data["probabilities"];
+                    console.log(probabilities);
+                    var probability = probabilities[0]["probability"];
+                    var label = probabilities[0]["label"];                    
+                    var icon = "meh";
+                    console.log(probability > 0.5);
+                    if(probability > 0.5 ){
+                        switch(label){
+                            case "positive":
+                                icon = 'smile'
+                                break;
+                            case "negative":
+                                icon = 'frown';
+                                break;
+                        }
+                    }
+                    $('#sentiment-icon').addClass(icon);
+               }catch(e){
+                   console.log(e);
+               }
+                return false;
+            }
+  
+            </script>
+        </foot>
+        
     </html>
 </apex:page>
