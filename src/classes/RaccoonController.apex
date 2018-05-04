@@ -4,8 +4,8 @@
 public class RaccoonController {
 
     private static String SENTIMENT_URL = 'https://api.einstein.ai/v2/language/sentiment';
-    private static String INTENT_URL        = 'https://api.einstein.ai/v2/language/intent';
-    private static String TOKEN                  =  getAccessToken();
+    private static String INTENT_URL    = 'https://api.einstein.ai/v2/language/intent';
+    private static String TRAIN_URL     = '';
 
     
     public static String getInterview(){
@@ -18,13 +18,49 @@ public class RaccoonController {
             JobApplicant__c jobApplicant = new JobApplicant__c();
             jobApplicant.Id = applicantId;
             jobApplicant.interview__c = interviewTextArea;
-            jobApplicant.sentiment__c = sentiment(interviewTextArea);
+            jobApplicant.sentiment__c = callEinsteinLanguage(interviewTextArea, 'CommunitySentiment', SENTIMENT_URL);
+            String intentJson = callEinsteinLanguage(interviewTextArea, 'NZBPJNYCSMSYSBIBQHPYLJ7UGU', INTENT_URL);
+            System.debug(intentJson);
+            putIntent(intentJson, jobApplicant);
             System.debug('update');
             update jobApplicant;
             return true;
         }catch(Exception e){
             return false;
         }
+    }
+
+    /**
+     * text-intent call to put data to ESP
+     */    
+    @TestVisible
+    private static JobApplicant__c putIntent(String intentJson, JobApplicant__c jobApplicant){
+        JSONParser parser = JSON.createParser(intentJson);
+        while (parser.nextToken() != null) {
+            if(parser.getText() == 'Career'){
+                parser.nextToken();
+                parser.nextToken();
+                jobApplicant.IntentCareer__c = parser.getDoubleValue();
+            }else if(parser.getText() == 'Place'){
+                parser.nextToken();
+                parser.nextToken();
+                jobApplicant.IntentPlace__c = parser.getDoubleValue();                
+            }else if(parser.getText() == 'Relationship'){
+                parser.nextToken();
+                parser.nextToken();
+                jobApplicant.IntentRelationship__c = parser.getDoubleValue();
+            }else if(parser.getText() == 'Worktime'){
+                parser.nextToken();
+                parser.nextToken();
+                jobApplicant.IntentWorkTime__c = parser.getDoubleValue();
+            }else if(parser.getText() == 'Salary'){
+                parser.nextToken();
+                parser.nextToken();
+                jobApplicant.IntentSalary__c = parser.getDoubleValue();                
+            }
+        }
+        System.debug(jobApplicant);
+        return jobApplicant;
     }
     
     public JobApplicant__c getJobApplicant(){
@@ -34,12 +70,7 @@ public class RaccoonController {
         return Database.query(query);
     }
     
-    /**
-     * text-intent call to put data to ESP
-     */
-    public void putIntent(){
-        
-    }
+ 
     
     /**
      *  text-intent call to get result data from ESP
@@ -51,15 +82,15 @@ public class RaccoonController {
     /**
      * text-sentiment call to get result data from ESP  
      */
-    public static String sentiment(String interviewTextArea){
+    public static String callEinsteinLanguage(String interviewTextArea, String modelId, String url){
         if(String.isBlank(interviewTextArea)){
             return '';
         }
         String target = interviewTextArea.replaceAll( '[\\r\\n]+', ' ' );
         System.debug(target);
-        String body = '{\"modelId\":\"CommunitySentiment\",\"document\":\"'+target+'\"}';
+        String body = '{\"modelId\":\"'+modelId+'\",\"document\":\"'+target+'\"}';
         System.debug(body);
-        HttpResponse res = call(SENTIMENT_URL, 'POST', body);
+        HttpResponse res = call(url, 'POST', body);
         System.debug(res.getBody());
         return res.getBody();
         
@@ -73,7 +104,7 @@ public class RaccoonController {
         HttpRequest req = new HttpRequest();
         req.setEndpoint(url);
         //common
-        req.setHeader('Authorization', 'Bearer '+TOKEN);
+        req.setHeader('Authorization', 'Bearer '+getAccessToken());
         req.setHeader('Cache-Control', 'no-cache');
         //by url
         req.setHeader('Content-Type', 'application/json');
