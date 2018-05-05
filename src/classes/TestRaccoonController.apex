@@ -25,7 +25,7 @@ private class TestRaccoonController {
         JobApplicant__c target = new JobApplicant__c();
         target.Id = id;        
             
-        JobApplicant__c jobApplicant = RaccoonController.putIntent(testJsonIntent, target);
+        JobApplicant__c jobApplicant = RaccoonController.parseIntentJson(testJsonIntent, target);
         
         // put each value to correct field by testJsonData
         System.assertEquals(0.72495943, jobApplicant.IntentCareer__c);
