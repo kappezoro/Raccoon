@@ -3,9 +3,13 @@
  */
 public class RaccoonController {
 
+    private static String OAUTH_URL     = 'https://api.einstein.ai/v2/oauth2/token';
+    private static String OAUTH_EMAIL   = 'colorful.circle.42@gmail.com';    
     private static String SENTIMENT_URL = 'https://api.einstein.ai/v2/language/sentiment';
     private static String INTENT_URL    = 'https://api.einstein.ai/v2/language/intent';
     private static String TRAIN_URL     = '';
+    private static String INTENT_MODEL_ID = 'NZBPJNYCSMSYSBIBQHPYLJ7UGU';
+    private static String SENTIMENT_MODEL_ID = 'CommunitySentiment';
 
     @RemoteAction
     public static JobApplicant__c updateInterview(String applicantId, String interviewTextArea){
@@ -13,10 +17,9 @@ public class RaccoonController {
             JobApplicant__c jobApplicant = new JobApplicant__c();
             jobApplicant.Id = applicantId;
             jobApplicant.interview__c = interviewTextArea;
-            jobApplicant.sentiment__c = callEinsteinLanguage(interviewTextArea, 'CommunitySentiment', SENTIMENT_URL);
-            String intentJson = callEinsteinLanguage(interviewTextArea, 'NZBPJNYCSMSYSBIBQHPYLJ7UGU', INTENT_URL);
-            System.debug(intentJson);
-            putIntent(intentJson, jobApplicant);
+            jobApplicant.sentiment__c = callEinsteinLanguage(interviewTextArea, SENTIMENT_MODEL_ID, SENTIMENT_URL);
+            String intentJson = callEinsteinLanguage(interviewTextArea, INTENT_MODEL_ID, INTENT_URL);
+            parseIntentJson(intentJson, jobApplicant);
             System.debug('update');
             update jobApplicant;
             return jobApplicant;
@@ -30,7 +33,7 @@ public class RaccoonController {
      * text-intent call to put data to ESP
      */    
     @TestVisible
-    private static JobApplicant__c putIntent(String intentJson, JobApplicant__c jobApplicant){
+    private static JobApplicant__c parseIntentJson(String intentJson, JobApplicant__c jobApplicant){
         JSONParser parser = JSON.createParser(intentJson);
         while (parser.nextToken() != null) {
             if(parser.getText() == 'Career'){
@@ -67,8 +70,7 @@ public class RaccoonController {
             return '';
         }
         String target = interviewTextArea.replaceAll( '[\\r\\n]+', ' ' );
-        System.debug(target);
-        String body = '{\"modelId\":\"'+modelId+'\",\"document\":\"'+target+'\"}';
+        String body = '{\"modelId\":\"' + modelId + '\",\"document\":\"' + target + '\"}';
         System.debug(body);
         HttpResponse res = call(url, 'POST', body);
         System.debug(res.getBody());
@@ -84,7 +86,7 @@ public class RaccoonController {
         HttpRequest req = new HttpRequest();
         req.setEndpoint(url);
         //common
-        req.setHeader('Authorization', 'Bearer '+getAccessToken());
+        req.setHeader('Authorization', 'Bearer '+ getAccessToken());
         req.setHeader('Cache-Control', 'no-cache');
         //by url
         req.setHeader('Content-Type', 'application/json');
@@ -92,23 +94,9 @@ public class RaccoonController {
         req.setBody(body);
         System.debug('sendRequest');
         System.debug(req);
-         return h.send(req);
+        return h.send(req);
     }
-    
-    /**
-     *  header set to access API
-     */
-    public void setHeaders(Map<String, String> headers){
-        
-    }
-    
-    /**
-     * form data set
-     */
-    public void formDataSet(){
-        
-    }
-    
+          
     private static String getAccessToken() {
         // Ignore the File upload part and "jwt.pkcs" if you used a Salesforce certificate to sign up 
         // for an Einstein Platform account
@@ -120,13 +108,11 @@ public class RaccoonController {
 
         // Get a new token
         JWT jwt = new JWT('RS256');
-        // jwt.cert = 'JWTCert'; // Uncomment this if you used a Salesforce certificate to sign up for an Einstein Platform account
         jwt.pkcs8 = keyContents; // Comment this if you are using jwt.cert
         jwt.iss = 'developer.force.com';
-        jwt.sub = 'colorful.circle.42@gmail.com';
-        jwt.aud = 'https://api.einstein.ai/v2/oauth2/token';
+        jwt.sub = OAUTH_EMAIL;
+        jwt.aud = OAUTH_URL;
         jwt.exp = '1700';
-        String access_token = JWTBearerFlow.getAccessToken('https://api.einstein.ai/v2/oauth2/token', jwt);
-        return access_token;    
+        return JWTBearerFlow.getAccessToken(OAUTH_URL, jwt);    
     }
 }

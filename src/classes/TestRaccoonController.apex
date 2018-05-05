@@ -3,6 +3,10 @@ private class TestRaccoonController {
     
     private static String testJsonIntent = '{\"probabilities\":[{\"label\":\"Career\",\"probability\":0.72495943},{\"label\":\"Place\",\"probability\":0.55555}],\"object\":\"predictresponse\"}';
     
+    /**
+     * create test data
+     * @return Job Applicant Id 
+     */
     private static Id getTestApplicantId(){
         JobApplicant__c target = new JobApplicant__c();
         target.Name = 'testUser';
