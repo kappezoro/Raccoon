@@ -7,8 +7,7 @@ public class RaccoonController {
     private static String OAUTH_EMAIL   = 'colorful.circle.42@gmail.com';    
     private static String SENTIMENT_URL = 'https://api.einstein.ai/v2/language/sentiment';
     private static String INTENT_URL    = 'https://api.einstein.ai/v2/language/intent';
-    private static String TRAIN_URL     = '';
-    private static String INTENT_MODEL_ID = 'NZBPJNYCSMSYSBIBQHPYLJ7UGU';
+    private static String INTENT_MODEL_ID = 'IGBHCRWZQZ2BVBG2ZLQHPKPCC4';
     private static String SENTIMENT_MODEL_ID = 'CommunitySentiment';
 
     @RemoteAction
@@ -39,11 +38,7 @@ public class RaccoonController {
             if(parser.getText() == 'Career'){
                 parser.nextToken();
                 parser.nextToken();
-                jobApplicant.IntentCareer__c = parser.getDoubleValue();
-            }else if(parser.getText() == 'Place'){
-                parser.nextToken();
-                parser.nextToken();
-                jobApplicant.IntentPlace__c = parser.getDoubleValue();                
+                jobApplicant.IntentCareer__c = parser.getDoubleValue();           
             }else if(parser.getText() == 'Relationship'){
                 parser.nextToken();
                 parser.nextToken();
