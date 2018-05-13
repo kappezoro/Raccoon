@@ -2,7 +2,6 @@
  * Raccoon's Controller class
  */
 public class RaccoonController {
-    
     private static Properties__c properties        = [SELECT IntentModelId__c, JWTIss__c, OauthEmail__c FROM Properties__c LIMIT 1];
     private static String OAUTH_URL                   = 'https://api.einstein.ai/v2/oauth2/token';
     private static String OAUTH_EMAIL               = properties.OauthEmail__c;    
