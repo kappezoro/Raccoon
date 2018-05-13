@@ -7,23 +7,34 @@
    - text-sentiment
 
 ### Dataset models
- - collect messages with categorizing belows
-   - Salary
-   - Worktime
-   - Relationship
-   - Career
+- text-intent
+  - Labels
+    - Salary
+    - Worktime
+    - Relationship
+    - Career
+
+>Created by uploading datset/text-intent.csv
+
+- text-sentiment(Community Sentiment model)
+  - Labels 
+    - positive
+    - negative
+    - neutral
+
+>Community Sentiment model is proveded by einstein platform
 
 ## Object
 
  - Applicant
-   -- Intent Salary
-   -- Intent Worktime
-   -- Intent Relationship
-   -- Intent Career
-   -- Sentiment
+   - Intent Salary
+   - Intent Worktime
+   - Intent Relationship
+   - Intent Career
+   - Sentiment
    
 ## Custom Setting
 
  - Properties
-   -- Intent Model Id
-   -- OAuth Email
+   - Intent Model Id
+   - OAuth Email
